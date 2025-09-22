@@ -7,7 +7,7 @@
   <style>
     body { font-family: sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
     .container { max-width: 400px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 24px; text-align: center; }
-    canvas { border-radius: 50%; background: #eee; touch-action: none; }
+    canvas { border-radius: 50%; background: #fff; touch-action: none; }
     .knob-value { font-size: 1.5em; margin: 12px 0; }
     .button { background: #0077cc; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1em; cursor: pointer; margin-top: 12px; }
     .button:active { background: #005fa3; }
@@ -44,6 +44,7 @@
       return Math.round(Math.pow(10, logVal));
     }
 
+
     // Hilfsfunktion: Wert → Winkel (0 = unten)
     function angleFromLogValue(val) {
       const min = 1, max = 10000000;
@@ -53,11 +54,14 @@
     }
 
 
+
+
 	function drawKnob(canvas, angle) {
 	  const ctx = canvas.getContext("2d");
 	  const r = canvas.width / 2;
 	  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+/*
 	  // Zifferblatt-Beschriftung (6, 9, 12, 3 Uhr)
 	  const labelPositions = [
 		{ angle: Math.PI / 2, label: "1" },           // 6 Uhr
@@ -74,11 +78,13 @@
 		const y = r + (r - 38) * Math.sin(pos.angle);
 		ctx.fillText(pos.label, x, y);
 	  });
+*/
 
+/*
 	  // Kleine Striche für jede Dekade und feine Unterteilungen
 	  const min = 1, max = 10000000;
 	  const logMin = Math.log10(min), logMax = Math.log10(max);
-	  const totalTicks = (logMax - logMin) * 5; // 5 Striche pro Dekade
+	  const totalTicks = (logMax - logMin)* 5; // 5 Striche pro Dekade
 	  for (let i = 0; i <= totalTicks; i++) {
 		const percent = i / totalTicks;
 		const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
@@ -98,12 +104,59 @@
 		);
 		ctx.stroke();
 	  }
+*/
+
+
+const min = 1, max = 10000000;
+const logMin = Math.log10(min), logMax = Math.log10(max);
+const totalTicks = (logMax - logMin) * 5; // 5 Striche pro Dekade
+
+for (let i = 0; i <= totalTicks; i++) {
+  const percent = i / totalTicks;
+  const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
+  const isMajor = (i % 5 === 0);
+  const tickLen = isMajor ? 14 : 7;
+  const tickColor = isMajor ? "#888" : "#bbb";
+
+  // Strich zeichnen
+  ctx.beginPath();
+  ctx.strokeStyle = tickColor;
+  ctx.lineWidth = isMajor ? 2 : 1;
+  ctx.moveTo(
+    r + (r - 14) * Math.cos(tickAngle),
+    r + (r - 14) * Math.sin(tickAngle)
+  );
+  ctx.lineTo(
+    r + (r - 14 - tickLen) * Math.cos(tickAngle),
+    r + (r - 14 - tickLen) * Math.sin(tickAngle)
+  );
+  ctx.stroke();
+
+  // Zahl hinzufügen bei Major-Tick
+  if (isMajor && i !== totalTicks) {
+    const decade = i / 5 ; // +1 weil i=0 → 10^1 ; + 1
+    
+	const label = `${Math.pow(10, decade).toLocaleString()}`;
+//const label = `10^${decade}`;
+    const textRadius = r - 40; // Abstand vom Mittelpunkt
+
+    const textX = r + textRadius * Math.cos(tickAngle);
+    const textY = r + textRadius * Math.sin(tickAngle);
+
+    ctx.fillStyle = "#333";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, textX, textY);
+  }
+}
+
 
 	  // Kreis
 	  ctx.beginPath();
 	  ctx.arc(r, r, r - 10, 0, 2 * Math.PI);
 	  ctx.strokeStyle = "#ccc";
-	  ctx.lineWidth = 10;
+	  ctx.lineWidth = 1;
 	  ctx.stroke();
 
 	  // Zeiger
@@ -111,7 +164,7 @@
 	  ctx.moveTo(r, r);
 	  ctx.lineTo(r + (r - 20) * Math.cos(angle), r + (r - 20) * Math.sin(angle));
 	  ctx.strokeStyle = "#0077cc";
-	  ctx.lineWidth = 6;
+	  ctx.lineWidth = 2;
 	  ctx.stroke();
 	}
 
@@ -199,7 +252,14 @@
         else summary = "😅 Das war wohl eher geraten.";
 
         app.innerHTML = `
-          <div class="feedback"><b>Dein Gesamtergebnis:</b><br>${summary}</div>
+          <div class="feedback">
+		  <b>Dein Gesamtergebnis:</b>
+		  <br>${summary}
+		  <br>
+		  <br>Viele Zahlen zur föderalen Verwaltung gibt's auf dem <a href="https://dashboard.digitale-verwaltung.de/">Dashboard Digitale Verwaltung</a>
+		  <br>
+		  <br>Datenprojekte bei <a href="https://www.init.de/thema/data-driven-government">init</a>
+		  </div>
           <button class="button" onclick="location.reload()">Nochmal spielen</button>
         `;
       }

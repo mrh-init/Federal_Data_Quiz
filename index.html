@@ -52,23 +52,69 @@
       return (percent * 2 * Math.PI) + Math.PI/2;
     }
 
-    function drawKnob(canvas, angle) {
-      const ctx = canvas.getContext("2d");
-      const r = canvas.width / 2;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-      ctx.arc(r, r, r - 10, 0, 2 * Math.PI);
-      ctx.strokeStyle = "#ccc";
-      ctx.lineWidth = 10;
-      ctx.stroke();
 
-      ctx.beginPath();
-      ctx.moveTo(r, r);
-      ctx.lineTo(r + (r - 20) * Math.cos(angle), r + (r - 20) * Math.sin(angle));
-      ctx.strokeStyle = "#0077cc";
-      ctx.lineWidth = 6;
-      ctx.stroke();
-    }
+	function drawKnob(canvas, angle) {
+	  const ctx = canvas.getContext("2d");
+	  const r = canvas.width / 2;
+	  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	  // Zifferblatt-Beschriftung (6, 9, 12, 3 Uhr)
+	  const labelPositions = [
+		{ angle: Math.PI / 2, label: "1" },           // 6 Uhr
+		{ angle: Math.PI, label: "100" },             // 9 Uhr
+		{ angle: 3 * Math.PI / 2, label: "10.000" },  // 12 Uhr
+		{ angle: 0, label: "1.000.000" }              // 3 Uhr
+	  ];
+	  ctx.font = "bold 16px sans-serif";
+	  ctx.fillStyle = "#333";
+	  ctx.textAlign = "center";
+	  ctx.textBaseline = "middle";
+	  labelPositions.forEach(pos => {
+		const x = r + (r - 38) * Math.cos(pos.angle);
+		const y = r + (r - 38) * Math.sin(pos.angle);
+		ctx.fillText(pos.label, x, y);
+	  });
+
+	  // Kleine Striche für jede Dekade und feine Unterteilungen
+	  const min = 1, max = 10000000;
+	  const logMin = Math.log10(min), logMax = Math.log10(max);
+	  const totalTicks = (logMax - logMin) * 5; // 5 Striche pro Dekade
+	  for (let i = 0; i <= totalTicks; i++) {
+		const percent = i / totalTicks;
+		const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
+		const isMajor = (i % 5 === 0);
+		const tickLen = isMajor ? 14 : 7;
+		const tickColor = isMajor ? "#888" : "#bbb";
+		ctx.beginPath();
+		ctx.strokeStyle = tickColor;
+		ctx.lineWidth = isMajor ? 2 : 1;
+		ctx.moveTo(
+		  r + (r - 14) * Math.cos(tickAngle),
+		  r + (r - 14) * Math.sin(tickAngle)
+		);
+		ctx.lineTo(
+		  r + (r - 14 - tickLen) * Math.cos(tickAngle),
+		  r + (r - 14 - tickLen) * Math.sin(tickAngle)
+		);
+		ctx.stroke();
+	  }
+
+	  // Kreis
+	  ctx.beginPath();
+	  ctx.arc(r, r, r - 10, 0, 2 * Math.PI);
+	  ctx.strokeStyle = "#ccc";
+	  ctx.lineWidth = 10;
+	  ctx.stroke();
+
+	  // Zeiger
+	  ctx.beginPath();
+	  ctx.moveTo(r, r);
+	  ctx.lineTo(r + (r - 20) * Math.cos(angle), r + (r - 20) * Math.sin(angle));
+	  ctx.strokeStyle = "#0077cc";
+	  ctx.lineWidth = 6;
+	  ctx.stroke();
+	}
+
 
     function render() {
       const app = document.getElementById("app");

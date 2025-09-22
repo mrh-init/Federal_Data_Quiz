@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schätzquiz</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f7f7f7; }
+    .container { max-width: 400px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 24px; }
+   24px; }
+    .knob-container { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
+    .knob-value { font-size: 2em; margin: 12px 0; }
+    .button { background: #0077cc; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1em; cursor: pointer; margin-top: 12px; }
+    .button:active { background: #005fa3; }
+    .feedback { margin: 24px 0; font-size: 1.1em; }
+    .result-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .result-table th, .result-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+    .result-table th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div class="container" id="app"></div>
+  <script>
+    // --- Fragen und Antworten ---
+    const questions = [
+      { q: "Wie viele Sekunden hat ein Tag?", a: 86400 },
+      { q: "Wie viele Einwohner hat Hamburg (ca.)?", a: 1850000 },
+      { q: "Wie viele Meter ist der Eiffelturm hoch?", a: 330 },
+      { q: "Wie viele Knochen hat ein erwachsener Mensch?", a: 206 },
+      { q: "Wie viele Länder gibt es auf der Erde?", a: 195 },
+      { q: "Wie viele Kilometer ist der Äquator lang?", a: 40075 }
+    ];
+
+    let current = 0;
+    let guesses = [];
+    let state = "question"; // "question", "feedback", "result"
+
+    // --- Logarithmischer Drehknopf (simuliert als Slider) ---
+    function logSliderValue(sliderValue) {
+      // sliderValue: 0...1 → 1...10.000.000 (logarithmisch)
+      const min = 1, max = 10000000;
+      const logMin = Math.log10(min), logMax = Math.log10(max);
+      const logValue = logMin + sliderValue * (logMax - logMin);
+      return Math.round(Math.pow(10, logValue));
+    }
+
+    function sliderFromValue(val) {
+      const min = 1, max = 10000000;
+      const logMin = Math.log10(min), logMax = Math.log10(max);
+      return (Math.log10(val) - logMin) / (logMax - logMin);
+    }
+
+    // --- UI Rendering ---
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = "";
+
+      if (state === "question") {
+        const q = questions[current];
+        let guess = guesses[current] || 1000;
+        let sliderVal = sliderFromValue(guess);
+
+        app.innerHTML = `
+          <div class="question">Frage ${current + 1} von ${questions.length}:<br><b>${q.q}</b></div>
+          <div class="knob-container">
+            <input type="range" min="0" max="1" step="0.001" value="${sliderVal}" id="knob" style="width:90%;">
+            <div class="knob-value" id="knob-value">${guess.toLocaleString('de-DE')}</div>
+          </div>
+          <button class="button" id="submit">Antwort abschicken</button>
+        `;
+
+        // Event: Slider bewegt
+        const knob = document.getElementById('knob');
+        knob.addEventListener('input', e => {
+          const val = logSliderValue(parseFloat(e.target.value));
+          document.getElementById('knob-value').textContent = val.toLocaleString('de-DE');
+        });
+
+        // Event: Antwort abschicken
+        document.getElementById('submit').onclick = () => {
+          const val = logSliderValue(parseFloat(knob.value));
+          guesses[current] = val;
+          state = "feedback";
+          render();
+        };
+
+      } else if (state === "feedback") {
+        const q = questions[current];
+        const guess = guesses[current];
+        const diff = Math.abs(guess - q.a);
+        let feedback;
+        const rel = diff / q.a;
+        if (rel < 0.05) feedback = "Sehr nah dran! 🎯";
+        else if (rel < 0.2) feedback = "Gut geschätzt!";
+        else if (rel < 0.5) feedback = "Nicht schlecht!";
+        else feedback = "Weit entfernt!";
+
+        app.innerHTML = `
+          <div class="feedback">${feedback}<br>
+          Deine Schätzung: <b>${guess.toLocaleString('de-DE')}</b><br>
+          Richtige Antwort: <b>${q.a.toLocaleString('de-DE')}</b></div>
+          <button class="button" id="next">OK</button>
+        `;
+        document.getElementById('next').onclick = () => {
+          if (current < questions.length - 1) {
+            current++;
+            state = "question";
+          } else {
+            state = "result";
+          }
+          render();
+        };
+
+      } else if (state === "result") {
+        let rows = "";
+        let totalRel = 0;
+        questions.forEach((q, i) => {
+          const guess = guesses[i];
+          const rel = Math.abs(guess - q.a) / q.a;
+          totalRel += rel;
+          rows += `<tr>
+            <td>${i+1}</td>
+            <td>${q.q}</td>
+            <td>${guess.toLocaleString('de-DE')}</td>
+            <td>${q.a.toLocaleString('de-DE')}</td>
+            <td>${(rel*100).toFixed(1)}%</td>
+          </tr>`;
+        });
+        const avgRel = (totalRel / questions.length) * 100;
+
+        app.innerHTML = `
+          <div class="question"><b>Ergebnis</b></div>
+          <table class="result-table">
+            <tr><th>#</th><th>Frage</th><th>Deine Schätzung</th><th>Richtig</th><th>Abweichung</th></tr>
+            ${rows}
+          </table>
+          <div class="feedback" style="margin-top:18px;">
+            <b>Durchschnittliche Abweichung: ${avgRel.toFixed(1)}%</b>
+          </div>
+          <button class="button" onclick="location.reload()">Nochmal spielen</button>
+        `;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

@@ -5,23 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Schätzquiz</title>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; background: #f7f7f7; }
-    .container { max-width: 400px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 24px; }
-   24px; }
-    .knob-container { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
-    .knob-value { font-size: 2em; margin: 12px 0; }
+    body { font-family: sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    .container { max-width: 400px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 24px; text-align: center; }
+    canvas { border-radius: 50%; background: #eee; touch-action: none; }
+    .knob-value { font-size: 1.5em; margin: 12px 0; }
     .button { background: #0077cc; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1em; cursor: pointer; margin-top: 12px; }
     .button:active { background: #005fa3; }
     .feedback { margin: 24px 0; font-size: 1.1em; }
-    .result-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    .result-table th, .result-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-    .result-table th { background: #f0f0f0; }
   </style>
 </head>
 <body>
   <div class="container" id="app"></div>
   <script>
-    // --- Fragen und Antworten ---
     const questions = [
       { q: "Wie viele Sekunden hat ein Tag?", a: 86400 },
       { q: "Wie viele Einwohner hat Hamburg (ca.)?", a: 1850000 },
@@ -33,53 +28,80 @@
 
     let current = 0;
     let guesses = [];
-    let state = "question"; // "question", "feedback", "result"
+    let feedbackLevels = [];
+    let state = "question";
+    let knobValue = 1000;
 
-    // --- Logarithmischer Drehknopf (simuliert als Slider) ---
-    function logSliderValue(sliderValue) {
-      // sliderValue: 0...1 → 1...10.000.000 (logarithmisch)
+    function logValueFromAngle(angle) {
       const min = 1, max = 10000000;
       const logMin = Math.log10(min), logMax = Math.log10(max);
-      const logValue = logMin + sliderValue * (logMax - logMin);
-      return Math.round(Math.pow(10, logValue));
+      const percent = angle / (2 * Math.PI);
+      const logVal = logMin + percent * (logMax - logMin);
+      return Math.round(Math.pow(10, logVal));
     }
 
-    function sliderFromValue(val) {
-      const min = 1, max = 10000000;
-      const logMin = Math.log10(min), logMax = Math.log10(max);
-      return (Math.log10(val) - logMin) / (logMax - logMin);
+    function drawKnob(canvas, angle) {
+      const ctx = canvas.getContext("2d");
+      const r = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(r, r, r - 10, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#ccc";
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(r, r);
+      ctx.lineTo(r + (r - 20) * Math.cos(angle), r + (r - 20) * Math.sin(angle));
+      ctx.strokeStyle = "#0077cc";
+      ctx.lineWidth = 6;
+      ctx.stroke();
     }
 
-    // --- UI Rendering ---
     function render() {
-      const app = document.getElementById('app');
+      const app = document.getElementById("app");
       app.innerHTML = "";
 
       if (state === "question") {
         const q = questions[current];
-        let guess = guesses[current] || 1000;
-        let sliderVal = sliderFromValue(guess);
+        knobValue = 1000;
+        let angle = Math.PI / 2;
 
         app.innerHTML = `
-          <div class="question">Frage ${current + 1} von ${questions.length}:<br><b>${q.q}</b></div>
-          <div class="knob-container">
-            <input type="range" min="0" max="1" step="0.001" value="${sliderVal}" id="knob" style="width:90%;">
-            <div class="knob-value" id="knob-value">${guess.toLocaleString('de-DE')}</div>
-          </div>
+          <div><b>Frage ${current + 1} von ${questions.length}</b><br>${q.q}</div>
+          <canvas id="knob" width="200" height="200" style="margin:20px auto;"></canvas>
+          <div class="knob-value" id="knob-value">${knobValue.toLocaleString('de-DE')}</div>
           <button class="button" id="submit">Antwort abschicken</button>
         `;
 
-        // Event: Slider bewegt
-        const knob = document.getElementById('knob');
-        knob.addEventListener('input', e => {
-          const val = logSliderValue(parseFloat(e.target.value));
-          document.getElementById('knob-value').textContent = val.toLocaleString('de-DE');
+        const canvas = document.getElementById("knob");
+        drawKnob(canvas, angle);
+
+        let dragging = false;
+
+        canvas.addEventListener("pointerdown", e => dragging = true);
+        canvas.addEventListener("pointerup", e => dragging = false);
+        canvas.addEventListener("pointermove", e => {
+          if (!dragging) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left - canvas.width / 2;
+          const y = e.clientY - rect.top - canvas.height / 2;
+          angle = Math.atan2(y, x);
+          if (angle < 0) angle += 2 * Math.PI;
+          knobValue = logValueFromAngle(angle);
+          drawKnob(canvas, angle);
+          document.getElementById("knob-value").textContent = knobValue.toLocaleString('de-DE');
         });
 
-        // Event: Antwort abschicken
-        document.getElementById('submit').onclick = () => {
-          const val = logSliderValue(parseFloat(knob.value));
-          guesses[current] = val;
+        document.getElementById("submit").onclick = () => {
+          guesses[current] = knobValue;
+          const correct = q.a;
+          const rel = Math.abs(knobValue - correct) / correct;
+          let level = 0;
+          if (rel < 0.05) level = 3;
+          else if (rel < 0.2) level = 2;
+          else if (rel < 0.5) level = 1;
+          feedbackLevels[current] = level;
           state = "feedback";
           render();
         };
@@ -87,21 +109,16 @@
       } else if (state === "feedback") {
         const q = questions[current];
         const guess = guesses[current];
-        const diff = Math.abs(guess - q.a);
-        let feedback;
-        const rel = diff / q.a;
-        if (rel < 0.05) feedback = "Sehr nah dran! 🎯";
-        else if (rel < 0.2) feedback = "Gut geschätzt!";
-        else if (rel < 0.5) feedback = "Nicht schlecht!";
-        else feedback = "Weit entfernt!";
-
+        const correct = q.a;
+        const level = feedbackLevels[current];
+        const texts = ["Weit entfernt! 😬", "Nicht schlecht!", "Gut geschätzt!", "Sehr nah dran! 🎯"];
         app.innerHTML = `
-          <div class="feedback">${feedback}<br>
+          <div class="feedback">${texts[level]}<br>
           Deine Schätzung: <b>${guess.toLocaleString('de-DE')}</b><br>
-          Richtige Antwort: <b>${q.a.toLocaleString('de-DE')}</b></div>
+          Richtige Antwort: <b>${correct.toLocaleString('de-DE')}</b></div>
           <button class="button" id="next">OK</button>
         `;
-        document.getElementById('next').onclick = () => {
+        document.getElementById("next").onclick = () => {
           if (current < questions.length - 1) {
             current++;
             state = "question";
@@ -112,31 +129,15 @@
         };
 
       } else if (state === "result") {
-        let rows = "";
-        let totalRel = 0;
-        questions.forEach((q, i) => {
-          const guess = guesses[i];
-          const rel = Math.abs(guess - q.a) / q.a;
-          totalRel += rel;
-          rows += `<tr>
-            <td>${i+1}</td>
-            <td>${q.q}</td>
-            <td>${guess.toLocaleString('de-DE')}</td>
-            <td>${q.a.toLocaleString('de-DE')}</td>
-            <td>${(rel*100).toFixed(1)}%</td>
-          </tr>`;
-        });
-        const avgRel = (totalRel / questions.length) * 100;
+        const avgLevel = feedbackLevels.reduce((a, b) => a + b, 0) / feedbackLevels.length;
+        let summary = "";
+        if (avgLevel >= 2.5) summary = "🎉 Großartig geschätzt!";
+        else if (avgLevel >= 1.5) summary = "👍 Solide Leistung!";
+        else if (avgLevel >= 0.8) summary = "😐 Da ist noch Luft nach oben.";
+        else summary = "😅 Das war wohl eher geraten.";
 
         app.innerHTML = `
-          <div class="question"><b>Ergebnis</b></div>
-          <table class="result-table">
-            <tr><th>#</th><th>Frage</th><th>Deine Schätzung</th><th>Richtig</th><th>Abweichung</th></tr>
-            ${rows}
-          </table>
-          <div class="feedback" style="margin-top:18px;">
-            <b>Durchschnittliche Abweichung: ${avgRel.toFixed(1)}%</b>
-          </div>
+          <div class="feedback"><b>Dein Gesamtergebnis:</b><br>${summary}</div>
           <button class="button" onclick="location.reload()">Nochmal spielen</button>
         `;
       }

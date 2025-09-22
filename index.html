@@ -30,14 +30,26 @@
     let guesses = [];
     let feedbackLevels = [];
     let state = "question";
-    let knobValue = 1000;
+    let knobValue = 1; // Defaultwert ist 1
 
+    // Hilfsfunktion: Winkel (0 = unten) → Wert (logarithmisch)
     function logValueFromAngle(angle) {
+      // 0 = unten (6 Uhr), 2π = wieder unten
       const min = 1, max = 10000000;
       const logMin = Math.log10(min), logMax = Math.log10(max);
-      const percent = angle / (2 * Math.PI);
+      // Normiere Winkel auf 0...1 (0 = unten, 1 = wieder unten)
+      let percent = (angle - Math.PI/2) % (2*Math.PI) / (2*Math.PI);
+      if (percent < 0) percent += 1;
       const logVal = logMin + percent * (logMax - logMin);
       return Math.round(Math.pow(10, logVal));
+    }
+
+    // Hilfsfunktion: Wert → Winkel (0 = unten)
+    function angleFromLogValue(val) {
+      const min = 1, max = 10000000;
+      const logMin = Math.log10(min), logMax = Math.log10(max);
+      const percent = (Math.log10(val) - logMin) / (logMax - logMin);
+      return (percent * 2 * Math.PI) + Math.PI/2;
     }
 
     function drawKnob(canvas, angle) {
@@ -64,8 +76,8 @@
 
       if (state === "question") {
         const q = questions[current];
-        knobValue = 1000;
-        let angle = Math.PI / 2;
+        knobValue = 1; // Defaultwert ist 1
+        let angle = angleFromLogValue(knobValue);
 
         app.innerHTML = `
           <div><b>Frage ${current + 1} von ${questions.length}</b><br>${q.q}</div>
@@ -79,19 +91,23 @@
 
         let dragging = false;
 
-        canvas.addEventListener("pointerdown", e => dragging = true);
-        canvas.addEventListener("pointerup", e => dragging = false);
-        canvas.addEventListener("pointermove", e => {
-          if (!dragging) return;
+        function updateKnob(e) {
           const rect = canvas.getBoundingClientRect();
           const x = e.clientX - rect.left - canvas.width / 2;
           const y = e.clientY - rect.top - canvas.height / 2;
-          angle = Math.atan2(y, x);
-          if (angle < 0) angle += 2 * Math.PI;
+          let ang = Math.atan2(y, x);
+          // Normiere auf 0...2π, 0 = rechts, -π/2 = unten
+          if (ang < -Math.PI/2) ang += 2 * Math.PI;
+          angle = ang;
           knobValue = logValueFromAngle(angle);
           drawKnob(canvas, angle);
           document.getElementById("knob-value").textContent = knobValue.toLocaleString('de-DE');
-        });
+        }
+
+        canvas.addEventListener("pointerdown", e => { dragging = true; updateKnob(e); });
+        canvas.addEventListener("pointerup", e => dragging = false);
+        canvas.addEventListener("pointerleave", e => dragging = false);
+        canvas.addEventListener("pointermove", e => { if (dragging) updateKnob(e); });
 
         document.getElementById("submit").onclick = () => {
           guesses[current] = knobValue;

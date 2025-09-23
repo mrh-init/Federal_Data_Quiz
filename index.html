@@ -18,12 +18,11 @@
   <div class="container" id="app"></div>
   <script>
     const questions = [
-      { q: "Wie viele Sekunden hat ein Tag?", a: 86400 },
-      { q: "Wie viele Einwohner hat Hamburg (ca.)?", a: 1850000 },
-      { q: "Wie viele Meter ist der Eiffelturm hoch?", a: 330 },
-      { q: "Wie viele Knochen hat ein erwachsener Mensch?", a: 206 },
-      { q: "Wie viele Länder gibt es auf der Erde?", a: 195 },
-      { q: "Wie viele Kilometer ist der Äquator lang?", a: 40075 }
+      { q: "Wie viele Gebietskörperschaften gibt es in Deutschland?", a: 15000 },
+      { q: "Wie viele Verwaltungsleistungen gibt es laut FIM-Portal?", a: 15000 },
+      { q: "Wieviele Organisationseinheiten der Verwaltung sind im PVOG vorhanden?", a: 85000 },     
+      { q: "Wie viele Datenpunkte zu Zuständigkeit gibt es im PVOG (~Gebiet * Leistung)?", a: 2500000 },
+	  { q: "Für wie viele föderalen Verwaltungsleistungen ist im PVOG flächendeckend eine Zuständigkeit hinterlegt?", a: 23 }
     ];
 
     let current = 0;
@@ -56,100 +55,55 @@
 
 
 
+	// originaler knob
 	function drawKnob(canvas, angle) {
 	  const ctx = canvas.getContext("2d");
 	  const r = canvas.width / 2;
 	  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-/*
-	  // Zifferblatt-Beschriftung (6, 9, 12, 3 Uhr)
-	  const labelPositions = [
-		{ angle: Math.PI / 2, label: "1" },           // 6 Uhr
-		{ angle: Math.PI, label: "100" },             // 9 Uhr
-		{ angle: 3 * Math.PI / 2, label: "10.000" },  // 12 Uhr
-		{ angle: 0, label: "1.000.000" }              // 3 Uhr
-	  ];
-	  ctx.font = "bold 16px sans-serif";
-	  ctx.fillStyle = "#333";
-	  ctx.textAlign = "center";
-	  ctx.textBaseline = "middle";
-	  labelPositions.forEach(pos => {
-		const x = r + (r - 38) * Math.cos(pos.angle);
-		const y = r + (r - 38) * Math.sin(pos.angle);
-		ctx.fillText(pos.label, x, y);
-	  });
-*/
+	const min = 1, max = 10000000;
+	const logMin = Math.log10(min), logMax = Math.log10(max);
+	const totalTicks = (logMax - logMin) * 5; // 5 Striche pro Dekade
 
-/*
-	  // Kleine Striche für jede Dekade und feine Unterteilungen
-	  const min = 1, max = 10000000;
-	  const logMin = Math.log10(min), logMax = Math.log10(max);
-	  const totalTicks = (logMax - logMin)* 5; // 5 Striche pro Dekade
-	  for (let i = 0; i <= totalTicks; i++) {
-		const percent = i / totalTicks;
-		const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
-		const isMajor = (i % 5 === 0);
-		const tickLen = isMajor ? 14 : 7;
-		const tickColor = isMajor ? "#888" : "#bbb";
-		ctx.beginPath();
-		ctx.strokeStyle = tickColor;
-		ctx.lineWidth = isMajor ? 2 : 1;
-		ctx.moveTo(
-		  r + (r - 14) * Math.cos(tickAngle),
-		  r + (r - 14) * Math.sin(tickAngle)
-		);
-		ctx.lineTo(
-		  r + (r - 14 - tickLen) * Math.cos(tickAngle),
-		  r + (r - 14 - tickLen) * Math.sin(tickAngle)
-		);
-		ctx.stroke();
+	for (let i = 0; i <= totalTicks; i++) {
+	  const percent = i / totalTicks;
+	  const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
+	  const isMajor = (i % 5 === 0);
+	  const tickLen = isMajor ? 14 : 7;
+	  const tickColor = isMajor ? "#888" : "#bbb";
+
+	  // Strich zeichnen
+	  ctx.beginPath();
+	  ctx.strokeStyle = tickColor;
+	  ctx.lineWidth = isMajor ? 2 : 1;
+	  ctx.moveTo(
+		r + (r - 14) * Math.cos(tickAngle),
+		r + (r - 14) * Math.sin(tickAngle)
+	  );
+	  ctx.lineTo(
+		r + (r - 14 - tickLen) * Math.cos(tickAngle),
+		r + (r - 14 - tickLen) * Math.sin(tickAngle)
+	  );
+	  ctx.stroke();
+
+	  // Zahl hinzufügen bei Major-Tick
+	  if (isMajor && i !== totalTicks) {
+		const decade = i / 5 ; // +1 weil i=0 → 10^1 ; + 1
+		
+		const label = `${Math.pow(10, decade).toLocaleString()}`;
+	//const label = `10^${decade}`;
+		const textRadius = r - 40; // Abstand vom Mittelpunkt
+
+		const textX = r + textRadius * Math.cos(tickAngle);
+		const textY = r + textRadius * Math.sin(tickAngle);
+
+		ctx.fillStyle = "#333";
+		ctx.font = "12px sans-serif";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.fillText(label, textX, textY);
 	  }
-*/
-
-
-const min = 1, max = 10000000;
-const logMin = Math.log10(min), logMax = Math.log10(max);
-const totalTicks = (logMax - logMin) * 5; // 5 Striche pro Dekade
-
-for (let i = 0; i <= totalTicks; i++) {
-  const percent = i / totalTicks;
-  const tickAngle = percent * 2 * Math.PI + Math.PI / 2; // Start bei 6 Uhr
-  const isMajor = (i % 5 === 0);
-  const tickLen = isMajor ? 14 : 7;
-  const tickColor = isMajor ? "#888" : "#bbb";
-
-  // Strich zeichnen
-  ctx.beginPath();
-  ctx.strokeStyle = tickColor;
-  ctx.lineWidth = isMajor ? 2 : 1;
-  ctx.moveTo(
-    r + (r - 14) * Math.cos(tickAngle),
-    r + (r - 14) * Math.sin(tickAngle)
-  );
-  ctx.lineTo(
-    r + (r - 14 - tickLen) * Math.cos(tickAngle),
-    r + (r - 14 - tickLen) * Math.sin(tickAngle)
-  );
-  ctx.stroke();
-
-  // Zahl hinzufügen bei Major-Tick
-  if (isMajor && i !== totalTicks) {
-    const decade = i / 5 ; // +1 weil i=0 → 10^1 ; + 1
-    
-	const label = `${Math.pow(10, decade).toLocaleString()}`;
-//const label = `10^${decade}`;
-    const textRadius = r - 40; // Abstand vom Mittelpunkt
-
-    const textX = r + textRadius * Math.cos(tickAngle);
-    const textY = r + textRadius * Math.sin(tickAngle);
-
-    ctx.fillStyle = "#333";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, textX, textY);
-  }
-}
+	}
 
 
 	  // Kreis
@@ -169,6 +123,9 @@ for (let i = 0; i <= totalTicks; i++) {
 	}
 
 
+
+
+
     function render() {
       const app = document.getElementById("app");
       app.innerHTML = "";
@@ -180,8 +137,12 @@ for (let i = 0; i <= totalTicks; i++) {
 
         app.innerHTML = `
           <div><b>Frage ${current + 1} von ${questions.length}</b><br>${q.q}</div>
-          <canvas id="knob" width="200" height="200" style="margin:20px auto;"></canvas>
-          <div class="knob-value" id="knob-value">${knobValue.toLocaleString('de-DE')}</div>
+          
+			<div style="display:flex; flex-direction:column; align-items:center;">
+			  <div class="knob-value" id="knob-value">${knobValue.toLocaleString('de-DE')}</div>
+			  <canvas id="knob" width="200" height="200"></canvas>
+			</div>
+
           <button class="button" id="submit">Antwort abschicken</button>
         `;
 

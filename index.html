@@ -9,9 +9,11 @@
     .container { max-width: 400px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 24px; text-align: center; }
     canvas { border-radius: 50%; background: #fff; touch-action: none; }
     .knob-value { font-size: 1.5em; margin: 12px 0; }
-    .button { background: #0077cc; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1em; cursor: pointer; margin-top: 12px; }
-    .button:active { background: #005fa3; }
+    .button { background: #F53D05; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1em; cursor: pointer; margin-top: 12px; }
+    .button:active { background: #E23703; }
     .feedback { margin: 24px 0; font-size: 1.1em; }
+	.state-link { color: #C9C8D0; cursor: pointer; text-decoration: underline; }
+	.state-link:hover { color: #9F9DAA; } /* optional: Hover-Farbe */
   </style>
 </head>
 <body>
@@ -30,6 +32,7 @@
     let feedbackLevels = [];
     let state = "question";
     let knobValue = 1; // Defaultwert ist 1
+	let previousState = null; // merken, woher man kommt --> ggf. optional
 
     // Hilfsfunktion: Winkel (0 = unten) → Wert (logarithmisch)
     function logValueFromAngle(angle) {
@@ -117,9 +120,14 @@
 	  ctx.beginPath();
 	  ctx.moveTo(r, r);
 	  ctx.lineTo(r + (r - 20) * Math.cos(angle), r + (r - 20) * Math.sin(angle));
-	  ctx.strokeStyle = "#0077cc";
+	  ctx.strokeStyle = "#F53D05";
 	  ctx.lineWidth = 2;
 	  ctx.stroke();
+	  
+	  
+
+
+
 	}
 
 
@@ -136,6 +144,17 @@
         let angle = angleFromLogValue(knobValue);
 
         app.innerHTML = `
+
+
+		  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+			<div style="flex: 1; text-align: left; font-size: 1em; font-family: inherit;">
+			  <b>Schätzquiz <br> Verwaltungsdaten</b>
+			</div>
+			<img src="logo.png" alt="Logo" style="height: 2em; width: auto; display: block;">
+		  </div>
+		<hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">
+		
+		
           <div><b>Frage ${current + 1} von ${questions.length}</b><br>${q.q}</div>
           
 			<div style="display:flex; flex-direction:column; align-items:center;">
@@ -144,6 +163,12 @@
 			</div>
 
           <button class="button" id="submit">Antwort abschicken</button>
+		  
+		  
+		  <hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">
+		  <div><a class="state-link" id="impressum">Impressum</a></div>
+
+
         `;
 
         const canvas = document.getElementById("knob");
@@ -181,6 +206,12 @@
           state = "feedback";
           render();
         };
+		
+		document.getElementById("impressum").onclick = () => {
+		  previousState = state;
+		  state = "impressum";
+		  render();
+		};
 
       } else if (state === "feedback") {
         const q = questions[current];
@@ -217,13 +248,51 @@
 		  <b>Dein Gesamtergebnis:</b>
 		  <br>${summary}
 		  <br>
-		  <br>Viele Zahlen zur föderalen Verwaltung gibt's auf dem <a href="https://dashboard.digitale-verwaltung.de/">Dashboard Digitale Verwaltung</a>
+		  <br>Viele Daten zur föderalen Verwaltung gibt es auf dem <a href="https://dashboard.digitale-verwaltung.de/">Dashboard Digitale Verwaltung</a>
 		  <br>
-		  <br>Datenprojekte bei <a href="https://www.init.de/thema/data-driven-government">init</a>
+		  <br>Informationen zu maßgeschneiderten Datenprojekten gibt es bei <a href="https://www.init.de/thema/data-driven-government">init</a>
 		  </div>
           <button class="button" onclick="location.reload()">Nochmal spielen</button>
         `;
-      }
+      } else if (state === "impressum") {
+	  app.innerHTML = `
+	    <div style="margin: 20px; font-family: sans-serif; font-size: 1em; line-height: 1.5;">
+	      <h2>Impressum</h2>
+						  <p>
+				Herausgeber<br>
+				]init[ Aktiengesellschaft für digitale Kommunikation<br>
+				Köpenicker Straße 9<br>
+				10997 Berlin<br>
+				<br>
+				Fon: +49 30 97006 0<br>
+				Fax: +49 30 97006 135<br>
+				E-Mail: init@init.de<br>
+				<br>
+				Medienanfragen: presse@init.de<br>
+				<br>
+				Vorstand<br>
+				Harald Felling (Vorsitzender)<br>
+				Julia Läkemäker<br>
+				Sandra Valentin<br>
+				Dr. Gregor Költzsch<br>
+				Dr. Axel Kaufmann<br>
+				Dr. Eckart Pech<br>
+				<br>
+				Amtsgericht Charlottenburg, Handelsregisternummer: HRB 73218<br>
+				Umsatzsteuer-Identifikationsnummer: DE 812816783<br>
+					<br>
+	        Weitere rechtliche Hinweise und Datenschutzinformationen finden Sie auf unserer Website.
+	      </p>
+	      <button class="button" id="back">Zurück</button>
+	    </div>
+	  `;
+	
+	  document.getElementById("back").onclick = () => {
+	    state = previousState || "question";
+	    render();
+	  };
+	}
+
     }
 
     render();

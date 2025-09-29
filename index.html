@@ -20,12 +20,23 @@
   <div class="container" id="app"></div>
   <script>
     const questions = [
-      { q: "Wie viele Gebietskörperschaften gibt es in Deutschland?", a: 15000 },
-      { q: "Wie viele Verwaltungsleistungen gibt es laut FIM-Portal?", a: 15000 },
-      { q: "Wieviele Organisationseinheiten der Verwaltung sind im PVOG vorhanden?", a: 85000 },     
-      { q: "Wie viele Datenpunkte zu Zuständigkeit gibt es im PVOG (~Gebiet * Leistung)?", a: 2500000 },
+      { q: "Wie viele Verwaltungsgebiete gibt es in Deutschland?", a: 12522 },
+      { q: "Wie viele Verwaltungsleistungen gibt es laut FIM-Portal?", a: 14728 },
+      { q: "Wieviele Organisationseinheiten der Verwaltung sind im PVOG vorhanden?", a: 84083 },     
+      { q: "Wie viele Datenpunkte zu Zuständigkeit gibt es im PVOG (~Gebiet * Leistung)?", a: 3825744 },
 	  { q: "Für wie viele föderalen Verwaltungsleistungen ist im PVOG flächendeckend eine Zuständigkeit hinterlegt?", a: 23 }
     ];
+	/*
+		Quellen:
+		- Verwaltungsgebiete: Auszug GV Destatis, https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122024_Auszug_GV.html
+			alle ARS ohne Textkennzeichen "50" und "41" wegen dubletten. Stand: 31.12.2024
+		- Verwaltungsleistungen: https://fimportal.de/search?resource=leistung-steckbriefe&page=1&page_size=20 Stand: 29.09.2025
+		- Verwaltungsorganisationen: https://docs.fitko.de/resources/pvog/ Bezug über Bereitstelldienst API, Stand: 29.09.2025
+		- Zuständigkeit: https://docs.fitko.de/resources/pvog/ Bezug über Bereitstelldienst API, Stand: 29.09.2025
+		- https://docs.fitko.de/resources/pvog/ Bezug über Bereitstelldienst API, eigene Auswertung. Stand: 07.2025
+		
+			
+	*/
 
     let current = 0;
     let guesses = [];
@@ -218,7 +229,7 @@
         const guess = guesses[current];
         const correct = q.a;
         const level = feedbackLevels[current];
-        const texts = ["Weit entfernt! 😬", "Nicht schlecht!", "Gut geschätzt!", "Sehr nah dran! 🎯"];
+        const texts = ["Weit entfernt! 😬", "Nicht schlecht!", "Gut geschätzt!", "Hervorragend! 🎯"];
         app.innerHTML = `
           <div class="feedback">${texts[level]}<br>
           Deine Schätzung: <b>${guess.toLocaleString('de-DE')}</b><br>
